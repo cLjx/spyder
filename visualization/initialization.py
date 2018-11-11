@@ -12,4 +12,8 @@ passwd = 'admin'
 database = 'infog'
 charset = 'utf8'
 
-table="ods_wei_order_info"
+
+table="ods_wei_order_items"
+# ods_wei_order_items
+# ods_wei_order_item_inspay
+# ods_wei_order_info

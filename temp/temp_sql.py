@@ -13,22 +13,20 @@ host = 'localhost'
 port = 3306
 user = 'admin'
 passwd = 'admin'
-database = 'info'
+database = 'infog'
 charset = 'utf8'
 
 connect = pymysql.connect(host=host,port=port,user=user,passwd=passwd,db=database,charset=charset)
 cursor = connect.cursor();
 
-table="test_table";
 
-sql = 'SELECT * from ' +table;
+sql = 'SELECT mst.stid , mst.real_city , minfo.create_time FROM ods_wei_stations as mst, ods_wei_order_info as minfo WHERE mst.stid = 10277 AND minfo.create_time < 1418735210 ;';
 cursor.execute(sql);
 
 try:
     for row in cursor.fetchall():
-        print("id:%d\t a:%d\t b:%d" % row);
+        print(row);
 except Exception as e:
-    connect.rollback()
     print('error\t',e)
         
 cursor.close()

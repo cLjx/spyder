@@ -6,7 +6,8 @@ Created on Mon Nov 12 19:40:52 2018
 """
 import pandas as pd, numpy as np
 import os ,time
-from pyecharts import Bar, Line, Grid ,Bar3D , Geo
+from pyecharts import Bar, Line, Grid ,Bar3D , Geo ,Pie
+import mSQLFunction
 
 
 printO = {'w':'周','M':'月','Q':'季','B':'工作日','D':'日'}
@@ -64,7 +65,7 @@ def mTi(df_):
 def mAll(alldf,minit):
     print('总共:{}条'.format(len(alldf)))
     print(alldf.head())
-    print(alldf.columns)
+#    print(alldf.columns)
     data = 0
     tempii = -1
     for tempi in minit['type']:
@@ -77,7 +78,7 @@ def mAll(alldf,minit):
         alldf = alldfOut
 #    alldf = alldf[alldf['goods_name'] in minit['type']]
     dftype = alldf.to_period(minit['axis'])
-    print(dftype.head())
+#    print(dftype.head())
     df_ = pd.pivot_table(dftype,index=['date','goods_name'],
                    values=['subtotal','actual_price'], # 前面是goods_number
                    aggfunc = [len,np.min,np.median,np.sum])
@@ -88,7 +89,7 @@ def mAll(alldf,minit):
 #        print(dftype.head())
 #    print(minit['axis'])
 
-    alldfT = alldf[['num','subtotal']].resample(minit['axis']).sum()
+    alldfT = alldf[['num','subtotal']].resample(minit['axis']).sum().to_period(minit['axis'])
     print('{} 条 ---> {} {}数据'.format(alldf['num'].sum(),len(alldfT),printO[minit['axis']]))
     
     def fun_file():
@@ -117,9 +118,9 @@ def mAll(alldf,minit):
     
 #    print(pd.read_csv('csv_temp/mAllT df_.csv').head())
     print(pd.read_csv('csv_temp/mAllT alldfT.csv').head())
-    mydraw(minit)
+    dataProfit = mydraw(minit)
     mydraw_(minit)
-    return data
+    return pd.read_csv('csv_temp/mAllT alldfT.csv')
 
 def mydraw(minit):
     line_subtotal = Line(printO[minit['axis']]+'：总收益（分）',title_pos="65%")
@@ -158,7 +159,7 @@ def mydraw(minit):
     grid.add(line_subtotal, grid_bottom="20%", grid_left="10%")
     grid.add(line_num, grid_bottom="20%", grid_left="10%")
     grid.render('img-收益和订单数.html')
-    
+    return {'attr':attr_line_subtotal,'value':data_line_subtotal}
     
 def mydraw_(minit):
     df_temp = pd.read_csv('csv_temp/mAllT df_.csv')
@@ -219,7 +220,7 @@ def mydraw_(minit):
     sub_title = str(list(df_goods_name))
     
     maxRange = max(ddd[:,1])
-    bar3d_n = Bar3D("各种油的订单量",subtitle=sub_title, width=800, height=600)
+    bar3d_n = Bar3D("各种油的订单量",subtitle=sub_title, width=1600, height=800)
     bar3d_n.add(
     "",
     x_axis,
@@ -241,7 +242,7 @@ def mydraw_(minit):
 #    print(ddd)
     y_axis = df_goods_name
     maxRange = max(ddd[:,1])
-    bar3d_m = Bar3D("各种油的平均价格 = ( Z + 60,000 ) 分/毫升 ",subtitle=sub_title, width=800, height=600)
+    bar3d_m = Bar3D("各种油的平均价格 = ( Z + 60,000 ) 分/毫升 ",subtitle=sub_title, width=1600, height=600)
     bar3d_m.add(
     "",
     x_axis,
@@ -264,7 +265,7 @@ def mydraw_(minit):
 #    print(ddd)
     y_axis = df_goods_name
     maxRange = max(ddd[:,1])
-    bar3d_m = Bar3D("各种油的收益 （万元）",subtitle=sub_title, width=800, height=600)
+    bar3d_m = Bar3D("各种油的收益 （万元）",subtitle=sub_title, width=1600, height=600)
     bar3d_m.add(
     "",
     x_axis,
@@ -306,6 +307,72 @@ def mGeoAll(df,minit):
     geo.render('全国油站数量分布.html')
     
     
+def mDrawMulti(multi,minit):
+    line = Line('好几个油站的总收益（万元）',height = 600, width = 1600)
+    time_s = time.strftime('%Y-%m-%d',time.strptime(minit['s'],'%Y-%m-%d %H-%M-%S'))
+    time_e = time.strftime('%Y-%m-%d',time.strptime(minit['e'],'%Y-%m-%d %H-%M-%S'))
+    temp_index = pd.date_range(start=time_s,end=time_e)
+    df_for_add = pd.DataFrame(np.zeros(len(temp_index)),index = temp_index)
+    df_for_add.columns = ['no_use']
+    df_for_add = df_for_add['no_use'].resample(minit['axis']).sum().to_period(minit['axis'])
+    def for_add(x):
+        open('csv_temp/no-use.csv','w').close()
+        x.to_csv('csv_temp/no-use.csv',index = True , header = True)
+        x = pd.read_csv('csv_temp/no-use.csv')
+        os.remove('csv_temp/no-use.csv')
+        return x
+    df_for_add = for_add(df_for_add)
+    df_for_add.columns = ['date','no_use']
+    def get_x_d(df,df_for_add):            
+        dff = pd.merge(df_for_add,df,on='date',how = 'left')
+        dff = dff.fillna(0)
+        return dff
+    df = get_x_d(multi[0]['df'],df_for_add)
+    def mwrite(df):
+        open('csv_temp/-------------------.csv','w').close()
+        df.to_csv('csv_temp//-------------------.csv',index = True , header = True)
+#    mwrite(df)
+    attr = list(df['date'])
+    for sample in multi:
+        title = str(sample['st'])
+        df = sample['df']
+        df.columns = ['date','num','subtotal']
+        value = list(get_x_d(df,df_for_add)['subtotal'])
+        line.add(title,attr,value,mark_line=["average"],is_datazoom_show=True,datazoom_type="inside",)
+        
+    line.render('img-好几个油站的总收益.html')
+    
+    
+def mCityAll(dfAll,minit):
+    df_ = dfAll.drop('id',axis=1).groupby('city').agg([len])
+    attr = list(df_.index)
+    value = list(df_['count']['len'])
+    pie = Pie("")
+    pie.add(
+        "各个城市的油站数量",
+        attr,
+        value,
+        is_random=True,
+        rosetype="area",
+        is_legend_show=False,
+        is_label_show=True,
+        legend_pos="20%",
+    )
+    pie.render('img-各个城市的油站数量.html')
+#    print(dfAll)
+    
+    df = dfAll[dfAll['city'] == minit['st']]
+    list_id = list(df['id'])
+    
+    m = mSQLFunction.mSQL()
+    multi = []
+    for i in list_id:
+        minit['st'] = i
+        temp = mAll(m.mAll(minit),minit)
+    #    multi.append({'st':i, 'attr':temp['attr'], 'value':temp['value']})
+        multi.append({'st':i, 'df':temp})
+    mDrawMulti(multi,minit)
+    m.close()
     
     
     

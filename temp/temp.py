@@ -95,3 +95,11 @@ print(max(n[:,2]))
 m = [1,2,3]
 a = 1
 print(a in m)
+
+
+
+sts = [145728,10387,89932]
+multi = []
+for i in sts:
+    multi.append({'st':i, 'attr':'attr', 'value':'value'})
+print(multi)

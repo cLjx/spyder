@@ -62,7 +62,7 @@ class mSQL:
             print(type(minit['st']))
             sys.exit()
         #print(sql_st)
-        file_pp = sql_st+'_'+minit['s']+' '+minit['e']
+        file_pp = str(minit['st']) + sql_st+'_'+minit['s']+' '+minit['e']
         if not ( os.path.exists('csv_temp/mStTiPro_df_'+file_pp+'.csv') and \
                 os.path.exists('csv_temp/mStTiPro_info_'+file_pp+'.csv') ) :
             
@@ -154,7 +154,7 @@ class mSQL:
 
     def mTi(self,minit):
         mTiReturn = 0
-        file_pp = 'time- '+minit['s']+' '+minit['e']
+        file_pp = str(minit['st']) + 'time- '+minit['s']+' '+minit['e']
         if not ( os.path.exists('csv_temp/mTi_df_'+file_pp+'.csv') ) :
             
             temp_time_struct = time.strptime(minit['s'],'%Y-%m-%d %H-%M-%S')
@@ -210,7 +210,7 @@ class mSQL:
             print(type(minit['st']))
             sys.exit()
         #print(sql_st)
-        file_pp =' '+sql_st+' '+minit['s']+' '+minit['e']
+        file_pp =str(minit['st']) + ' '+sql_st+' '+minit['s']+' '+minit['e']
         if not ( os.path.exists('csv_temp/mAll'+file_pp+'.csv') and \
                 os.path.exists('csv_temp/mAll'+file_pp+'.csv') ) :
             
@@ -270,10 +270,6 @@ class mSQL:
         file_pp =' '+minit['s']+' '+minit['e']
         if not ( os.path.exists('csv_temp/mGeoAll'+file_pp+'.csv') and \
                 os.path.exists('csv_temp/mGeoAll'+file_pp+'.csv') ) :
-            temp_time_struct = time.strptime(minit['s'],'%Y-%m-%d %H-%M-%S')
-            time_s = str(int(time.mktime(temp_time_struct)))
-            temp_time_struct = time.strptime(minit['e'],'%Y-%m-%d %H-%M-%S')
-            time_e = str(int(time.mktime(temp_time_struct)))
             msql = 'SELECT minfo.merchant_id , COUNT(minfo.merchant_id) as count \
                     FROM  ods_wei_order_info  as minfo \
                     WHERE minfo.merchant_id > 0 \
@@ -300,6 +296,44 @@ class mSQL:
 #            mAllReturn = mPlot.mAll(pd.read_csv('csv_temp/mAll'+file_pp+'.csv'))
             mGeoAllReturn = pd.read_csv('csv_temp/mGeoAll'+file_pp+'.csv')
         return mGeoAllReturn
+        
+    
+    def mCityAll(self,minit):
+        mCityAllReturn = 0
+        file_pp =' - mCityAll'
+        if not ( os.path.exists('csv_temp/mCityAll'+file_pp+'.csv') and \
+                os.path.exists('csv_temp/mCityAll'+file_pp+'.csv') ) :
+            msql = 'SELECT minfo.merchant_id , COUNT(merchant_id) as count , \
+                    (SELECT mst.real_city FROM ods_wei_stations as mst  \
+                     WHERE mst.stid = minfo.merchant_id) as city \
+                     FROM  ods_wei_order_info as minfo \
+                     WHERE minfo.merchant_id > 0  \
+                     GROUP BY merchant_id \
+                     ORDER BY count DESC;'
+#            print(msql)
+            mSQL.cursor.execute(msql)
+            res = mSQL.cursor.fetchall()
+            print('共检索到 {} 条数据'.format(len(res)))
+    #        print(res[1:5])
+            alldf = pd.DataFrame(np.array(res),columns = ['id','count','city'])
+            def fun_file():
+                if not os.path.exists('csv_temp'):
+                    os.makedirs('csv_temp')
+        
+                if os.path.exists('csv_temp/mCityAll'+file_pp+'.csv'):
+                    os.remove('csv_temp/mCityAll'+file_pp+'.csv')
+                file1 = open('csv_temp/mCityAll'+file_pp+'.csv','w')
+                file1.close()
+                
+            fun_file()
+            alldf.to_csv('csv_temp/mCityAll'+file_pp+'.csv',index = False , header = True)
+            mCityAllReturn = alldf
+        else:
+#            mAllReturn = mPlot.mAll(pd.read_csv('csv_temp/mAll'+file_pp+'.csv'))
+            mCityAllReturn = pd.read_csv('csv_temp/mCityAll'+file_pp+'.csv')
+        return mCityAllReturn
+        
+        
         
 
 

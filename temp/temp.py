@@ -84,3 +84,14 @@ print(time.mktime(time.strptime('2017-11-5 6-00-00','%Y-%m-%d %H-%M-%S')))
 
 
 print(time.strftime('%Y/%m/%d',time.localtime(1434763132)))
+
+import numpy as np
+n =  np.array([[1,2,3],[4,5,6]])
+print(n)
+
+print(max(n[:,2]))
+
+
+m = [1,2,3]
+a = 1
+print(a in m)

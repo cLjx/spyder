@@ -6,7 +6,10 @@ Created on Mon Nov 12 19:40:52 2018
 """
 import pandas as pd, numpy as np
 import os ,time
-from pyecharts import Bar, Line, Grid ,Bar3D
+from pyecharts import Bar, Line, Grid ,Bar3D , Geo
+
+
+printO = {'w':'周','M':'月','Q':'季','B':'工作日','D':'日'}
 
 def mStTiPro(info,df_):
     print(info)
@@ -63,36 +66,30 @@ def mAll(alldf,minit):
     print(alldf.head())
     print(alldf.columns)
     data = 0
-    if minit['axis'] == 'Y' :
-        alldfT = pd.pivot_table(alldf,index = ['Y'],values=['M'],aggfunc=len)
-        print('共 : {} 年数据'.format(len(alldfT)))
-#        alldfT.plot(x='Y',y='M')
-    elif minit['axis'] == 'M' :
-        alldfT = pd.pivot_table(alldf,index = ['Y','m'],values=['M'],aggfunc=len)
-        print('共 : {} 月数据'.format(len(alldfT)))
-    elif minit['axis'] == 'D' :
-        alldfT = pd.pivot_table(alldf,index = ['Y','m','yday'],values=['M'],aggfunc=len)
-        print('共 : {} 日数据'.format(len(alldfT)))
-    elif minit['axis'] == 'H' :
-        alldfT = pd.pivot_table(alldf,index = ['Y','m','d','H'],values=['M'],aggfunc=len)
-        print('共 : {} h数据'.format(len(alldfT)))
-    elif minit['axis'] == 'W' :
-#        print(alldf[['num','subtotal']].head())
-        dftype = alldf.to_period('w')
-        print(dftype.head())
-        df_ = pd.pivot_table(dftype,index=['date','goods_name'],
-                       values=['goods_number','actual_price'],
-                       aggfunc = [len,np.min,np.median,np.max])
+    tempii = -1
+    for tempi in minit['type']:
+        tempii += 1
+        if tempii == 0:
+            alldfOut = alldf[alldf['goods_name'] == tempi]
+        else:
+            alldfOut = pd.concat([alldfOut,alldf[alldf['goods_name'] == tempi]])
+    if not tempii == -1 :
+        alldf = alldfOut
+#    alldf = alldf[alldf['goods_name'] in minit['type']]
+    dftype = alldf.to_period(minit['axis'])
+    print(dftype.head())
+    df_ = pd.pivot_table(dftype,index=['date','goods_name'],
+                   values=['subtotal','actual_price'], # 前面是goods_number
+                   aggfunc = [len,np.min,np.median,np.sum])
 #        df_ = pd.pivot_table(dftype,index=['date','goods_name'],
 #                       values=['goods_number'],
 #                       aggfunc = [len,np.min,np.median,np.max])
 #        print(df_.head(10))
 #        print(dftype.head())
-        alldfT = dftype[['num','subtotal']].resample('w').sum()
-        print('{} 条 ---> {} 周数据'.format(alldf['num'].sum(),len(alldfT)))
-    else:
-        print('input type error')
-        return 'input type error'
+#    print(minit['axis'])
+
+    alldfT = alldf[['num','subtotal']].resample(minit['axis']).sum()
+    print('{} 条 ---> {} {}数据'.format(alldf['num'].sum(),len(alldfT),printO[minit['axis']]))
     
     def fun_file():
         if not os.path.exists('csv_temp'):
@@ -120,47 +117,53 @@ def mAll(alldf,minit):
     
 #    print(pd.read_csv('csv_temp/mAllT df_.csv').head())
     print(pd.read_csv('csv_temp/mAllT alldfT.csv').head())
-    mydraw(minit,alldfT)
+    mydraw(minit)
     mydraw_(minit)
     return data
 
-def mydraw(minit,alldfT):
-    if minit['axis'] == 'W' :
-        line_subtotal = Line('周：总收益（分）',title_pos="65%")
-    data_line_subtotal = list(alldfT['subtotal'])
+def mydraw(minit):
+    line_subtotal = Line(printO[minit['axis']]+'：总收益（分）',title_pos="65%")
+#    data_line_subtotal = list(alldfT['subtotal'])
+    data_line_subtotal = list(pd.read_csv('csv_temp/mAllT alldfT.csv')['subtotal'])
     attr_line_subtotal = list(pd.read_csv('csv_temp/mAllT alldfT.csv')['date'])
 #    print(attr_line_subtotal[1:5])
 #    print(data_line_subtotal[1:5])
     line_subtotal.add('收益',
              attr_line_subtotal,
              data_line_subtotal,
-             legend_pos="80%",)
-    
+             legend_pos="80%",
+             is_datazoom_show=True,
+             datazoom_type="inside",
+#             xaxis_interval=0, xaxis_rotate=30,
+             )
+
     line_num = Line('周：总订单个数')
-    data_line_num = list(alldfT['num'])
+#    data_line_num = list(alldfT['num'])
+    data_line_num = list(pd.read_csv('csv_temp/mAllT alldfT.csv')['num'])
     attr_line_num = list(pd.read_csv('csv_temp/mAllT alldfT.csv')['date'])
 #    print(attr_line_subtotal[1:5])
 #    print(data_line_subtotal[1:5])
     line_num.add('订单个数',
              attr_line_num,
              data_line_num,
-             legend_pos="20%",)
+             legend_pos="20%",
+             is_datazoom_show=True,
+             datazoom_type="inside",
+             )
     
+    grid = Grid(height = 800, width = 1600)
+#    grid.add(line_subtotal, grid_bottom="60%", grid_left="60%")
+#    grid.add(line_num, grid_bottom="60%", grid_right="60%")
     
-    
-    grid = Grid(height = 720, width = 1200)
-    grid.add(line_subtotal, grid_bottom="60%", grid_left="60%")
-    grid.add(line_num, grid_bottom="60%", grid_right="60%")
-    
-    grid.add(line_subtotal, grid_top="60%", grid_right="20%")
-    grid.add(line_num, grid_top="60%", grid_right="20%")
+    grid.add(line_subtotal, grid_bottom="20%", grid_left="10%")
+    grid.add(line_num, grid_bottom="20%", grid_left="10%")
     grid.render('img-收益和订单数.html')
     
     
 def mydraw_(minit):
     df_temp = pd.read_csv('csv_temp/mAllT df_.csv')
     #price number
-    df_temp.columns = ['date','goods_name','len_p','len_n','min_p','min_n','m_p','m_n','max_p','min_n']
+    df_temp.columns = ['date','goods_name','len_p','len_n','min_p','min_n','m_p','m_n','sum_p','sum_n']
     t = df_temp.drop([0,1]) 
     t.to_csv('csv_temp/mAllT df.csv',index = False , header = True)
     df = pd.read_csv('csv_temp/mAllT df.csv')
@@ -172,7 +175,7 @@ def mydraw_(minit):
 #    print(len(temp_index))
     df_for_add = pd.DataFrame(np.zeros(len(temp_index)),index = temp_index)
     df_for_add.columns = ['no_use']
-    df_for_add = df_for_add['no_use'].resample('w').sum().to_period('w')
+    df_for_add = df_for_add['no_use'].resample(minit['axis']).sum().to_period(minit['axis'])
     
 #    print(df_for_add.head(5))
     
@@ -190,48 +193,118 @@ def mydraw_(minit):
     df_goods_name.sort()
 #    print(len(df_goods_name))
     print(df_goods_name)
-    y=-1
-    ddd=np.array([0, 0 ,0])
-    for i in df_goods_name:
-        y += 1
-        print(i)
-        df_for = df[df['goods_name'] == i]
-    #    print(df_for_add.head(10))
-    #    print(df_for.head(10))
-                    
-        dff = pd.merge(df_for_add,df_for,on='date',how = 'left')
-        dff = dff.fillna(0)
-        d3 = for_add(dff['len_n'])
-        d3 = np.array(d3)
-        d1 = np.transpose(np.array([y for yy in range(d3.shape[0])]))        
-        ddd = np.vstack((ddd,np.column_stack((d3,d1))))
-#        print(ddd)
+    def get_x_d(df,df_for_add,aim):
+        y=-1
+        ddd=np.array([0, 0 ,0])
+        for i in df_goods_name:
+            y += 1
+#            print(i)
+            df_for = df[df['goods_name'] == i]                     
+            dff = pd.merge(df_for_add,df_for,on='date',how = 'left')
+            dff = dff.fillna(0)
+            d3 = for_add(dff[aim])
+            d3 = np.array(d3)
+            d1 = np.transpose(np.array([y for yy in range(d3.shape[0])]))        
+            ddd = np.vstack((ddd,np.column_stack((d3,d1))))
+        ddd = np.delete(ddd,0,axis=0)
+        return {'x':list(df_for_add['date']),'d':ddd}
     
-    print(ddd)
-    ddd = np.delete(ddd,0,axis=0)
-    x_axis = list(df_for_add['date'])
-#    print(x_axis)
+#    x_axis = list(df_for_add['date'])
+    get_x_d_r = get_x_d(df,df_for_add,'len_n')
+    x_axis = get_x_d_r['x']
+    ddd = get_x_d_r['d']
     y_axis = df_goods_name
     range_color = ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf',
                '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
-    bar3d = Bar3D("各种油的销量", width=1400, height=800)
-    bar3d.add(
+    sub_title = str(list(df_goods_name))
+    
+    maxRange = max(ddd[:,1])
+    bar3d_n = Bar3D("各种油的订单量",subtitle=sub_title, width=800, height=600)
+    bar3d_n.add(
     "",
     x_axis,
     y_axis,
     [[d[0], d[2], d[1]] for d in ddd],
     is_visualmap=True,
-#    visual_range=[0, 20],
+    visual_range=[0, maxRange],
     visual_range_color=range_color,
     grid3d_width=200,
     grid3d_depth=80,
     )
-    bar3d.render('img-各种油的销量.html')
+    bar3d_n.render('img-各种油的订单量.html')
     
-#    if os.path.exists('csv_temp/mAllT -------.csv'):
-#            os.remove('csv_temp/mAllT -------.csv')
-#    open('csv_temp/mAllT -------.csv','w').close()
-#    df.to_csv('csv_temp/mAllT -------.csv',index = True , header = True)
+    get_x_d_r = get_x_d(df,df_for_add,'m_p')
+    x_axis = get_x_d_r['x']
+    ddd = get_x_d_r['d']
+    ddd[:,1] = ddd[:,1]-60000
+    ddd = np.maximum(ddd, 0)
+#    print(ddd)
+    y_axis = df_goods_name
+    maxRange = max(ddd[:,1])
+    bar3d_m = Bar3D("各种油的平均价格 = ( Z + 60,000 ) 分/毫升 ",subtitle=sub_title, width=800, height=600)
+    bar3d_m.add(
+    "",
+    x_axis,
+    y_axis,
+    [[d[0], d[2], d[1]] for d in ddd],
+    is_visualmap=True,
+    visual_range=[0, maxRange],
+    visual_range_color=range_color,
+    grid3d_width=200,
+    grid3d_depth=80,
+    )
+    bar3d_m.render('img-各种油的平均价格.html')
+
+    
+    get_x_d_r = get_x_d(df,df_for_add,'sum_n')
+    x_axis = get_x_d_r['x']
+    ddd = get_x_d_r['d']
+    ddd[:,1] = ddd[:,1]/1000000
+    ddd = np.maximum(ddd, 0)
+#    print(ddd)
+    y_axis = df_goods_name
+    maxRange = max(ddd[:,1])
+    bar3d_m = Bar3D("各种油的收益 （万元）",subtitle=sub_title, width=800, height=600)
+    bar3d_m.add(
+    "",
+    x_axis,
+    y_axis,
+    [[d[0], d[2], d[1]] for d in ddd],
+    is_visualmap=True,
+    visual_range=[0, maxRange],
+    visual_range_color=range_color,
+    grid3d_width=200,
+    grid3d_depth=80,
+    )
+    bar3d_m.render('img-各种油的收益.html')
+    
+    
+def mGeoAll(df,minit):
+    df.dropna(axis=0, how='any', inplace=True)
+    print(df.head())
+    attr = list(df['city'])
+    value = list(df['count'])
+    
+    geo = Geo(
+            "全国油站数量分布",
+            title_color="#fff",
+            title_pos="center",
+            width=1200,
+            height=600,
+            background_color="#404a59",
+            )
+    range_max = max(value)
+    geo.add(
+            "",
+            attr,
+            value,
+            visual_range=[0, range_max],
+            visual_text_color="#fff",
+#            symbol_size=15,
+            is_visualmap=True,
+            )
+    geo.render('全国油站数量分布.html')
+    
     
     
     

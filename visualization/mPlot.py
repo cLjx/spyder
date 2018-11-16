@@ -308,7 +308,7 @@ def mGeoAll(df,minit):
     
     
 def mDrawMulti(multi,minit):
-    line = Line('好几个油站的总收益（万元）',height = 600, width = 1600)
+    line = Line('',height = 600, width = 1600)
     time_s = time.strftime('%Y-%m-%d',time.strptime(minit['s'],'%Y-%m-%d %H-%M-%S'))
     time_e = time.strftime('%Y-%m-%d',time.strptime(minit['e'],'%Y-%m-%d %H-%M-%S'))
     temp_index = pd.date_range(start=time_s,end=time_e)
@@ -363,16 +363,17 @@ def mCityAll(dfAll,minit):
     
     df = dfAll[dfAll['city'] == minit['st']]
     list_id = list(df['id'])
-    
-    m = mSQLFunction.mSQL()
-    multi = []
-    for i in list_id:
-        minit['st'] = i
-        temp = mAll(m.mAll(minit),minit)
-    #    multi.append({'st':i, 'attr':temp['attr'], 'value':temp['value']})
-        multi.append({'st':i, 'df':temp})
-    mDrawMulti(multi,minit)
-    m.close()
+    return list_id
+
+#    mm = mSQLFunction.mSQL()    
+#    multi = []
+#    for i in list_id:
+#        minit['st'] = i
+#        temp = mAll(mm.mAll(minit),minit)
+#    #    multi.append({'st':i, 'attr':temp['attr'], 'value':temp['value']})
+#        multi.append({'st':i, 'df':temp})
+#    mDrawMulti(multi,minit)
+#    mm.close()
     
     
     

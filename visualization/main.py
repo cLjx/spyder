@@ -10,7 +10,7 @@ import mSQLFunction, mPlot
 #st可以是油站的id（stid）,例如st=10387;或者油站名字（stname），例如st='中海油华英加油站'
 m_st=10314
 #查看方式,月：'M'，周：'w'，季度：'Q',每一天：'D'
-m_axis='w'
+m_axis='D'
 #时间段，起始,格式：'2014-06-20 00-00-00'
 m_time_s='2014-08-13 00-00-00'
 #时间段，截至，格式：'2014-09-18 00-00-00'
@@ -38,17 +38,18 @@ mPlot.mAll(m.mAll(minit),minit)
 
 #mPlot.mGeoAll(m.mGeoAll(minit),minit)
 
-#sts = [145728,10387,89932]
-#multi = []
-#for i in sts:
-#    minit['st'] = i
-#    temp = mPlot.mAll(m.mAll(minit),minit)
-##    multi.append({'st':i, 'attr':temp['attr'], 'value':temp['value']})
-#    multi.append({'st':i, 'df':temp})
-#mPlot.mDrawMulti(multi,minit)
+sts = [145728,10387,89932]
+
 
 minit['st'] = '深圳市'
-mPlot.mCityAll(m.mCityAll(minit),minit)
+sts = mPlot.mCityAll(m.mCityAll(minit),minit)
+
+multi = []
+for i in sts:
+    minit['st'] = i
+    temp = mPlot.mAll(m.mAll(minit),minit)
+    multi.append({'st':i, 'df':temp})
+mPlot.mDrawMulti(multi,minit)
 
 
 m.close()

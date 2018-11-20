@@ -162,10 +162,10 @@ print(mdata[1:2]['yw'])
 print(mdata.loc[1]['yw'])
 print(mdata.loc[1:2]['yw'])
 
-print(mdata)
-print(mdata[1:2])
-print(mdata['yw'])
-print(mdata.loc[[1,2,3],['yw']])
+#print(mdata)
+#print(mdata[1:2])
+#print(mdata['yw'])
+#print(mdata.loc[[1,2,3],['yw']])
 #
 ##print(mdata[(mdata['yw'==1]) & (mdata['sx']>2)])
 #

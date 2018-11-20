@@ -6,7 +6,7 @@ Created on Mon Nov 12 19:40:52 2018
 """
 import pandas as pd, numpy as np
 import os ,time
-from pyecharts import Bar, Line, Grid ,Bar3D , Geo ,Pie
+from pyecharts import Bar, Line, Grid ,Bar3D , Geo ,Pie ,Funnel
 import mSQLFunction
 
 
@@ -63,8 +63,10 @@ def mTi(df_):
 
 
 def mAll(alldf,minit):
+    if isinstance(alldf,bool):
+        return False
     print('总共:{}条'.format(len(alldf)))
-    print(alldf.head())
+#    print(alldf.head())
 #    print(alldf.columns)
     data = 0
     tempii = -1
@@ -117,7 +119,7 @@ def mAll(alldf,minit):
     alldfT.to_csv('csv_temp/mAllT alldfT.csv',index = True , header = True)
     
 #    print(pd.read_csv('csv_temp/mAllT df_.csv').head())
-    print(pd.read_csv('csv_temp/mAllT alldfT.csv').head())
+#    print(pd.read_csv('csv_temp/mAllT alldfT.csv').head())
     dataProfit = mydraw(minit)
     mydraw_(minit)
     return pd.read_csv('csv_temp/mAllT alldfT.csv')
@@ -137,6 +139,7 @@ def mydraw(minit):
              datazoom_type="inside",
 #             xaxis_interval=0, xaxis_rotate=30,
              )
+    line_subtotal.render('img-收益和订单个数-收益.html')
 
     line_num = Line('周：总订单个数')
 #    data_line_num = list(alldfT['num'])
@@ -151,6 +154,7 @@ def mydraw(minit):
              is_datazoom_show=True,
              datazoom_type="inside",
              )
+    line_num.render('img-收益和订单个数-订单个数.html')
     
     grid = Grid(height = 800, width = 1600)
 #    grid.add(line_subtotal, grid_bottom="60%", grid_left="60%")
@@ -359,11 +363,65 @@ def mCityAll(dfAll,minit):
         legend_pos="20%",
     )
     pie.render('img-各个城市的油站数量.html')
-#    print(dfAll)
+
+#    funnel = Funnel("")
+#    funnel.add(
+#        "各个城市的油站数量",
+#        attr,
+#        value,
+#        is_label_show=True,
+#        label_pos="inside",
+#        label_text_color="#fff",
+#    )
+#    funnel.render('img-各个城市的油站数量 - 漏斗图.html')
+   
+def mSingle(alldf,minit,info_id):
+#    df = alldf.to_period(minit['axis'])
+    df = alldf[['num','order_amount']].resample(minit['axis']).sum().to_period(minit['axis'])
+    time_s = time.strftime('%Y-%m-%d',time.strptime(minit['s'],'%Y-%m-%d %H-%M-%S'))
+    time_e = time.strftime('%Y-%m-%d',time.strptime(minit['e'],'%Y-%m-%d %H-%M-%S'))
+    temp_index = pd.date_range(start=time_s,end=time_e)
+#    print(len(temp_index))
+    df_for_add = pd.DataFrame(np.zeros(len(temp_index)),index = temp_index)
+    df_for_add.columns = ['no_use']
+    df_for_add = df_for_add['no_use'].resample(minit['axis']).sum().to_period(minit['axis'])
+    def for_add(x):
+        open('csv_temp/no-use.csv','w').close()
+        x.to_csv('csv_temp/no-use.csv',index = True , header = True)
+        x = pd.read_csv('csv_temp/no-use.csv')
+        os.remove('csv_temp/no-use.csv')
+        return x
+    df = for_add(df)
+    df_for_add = for_add(df_for_add)
+    df_for_add.columns = ['date','no_use']
+    def get_x_d(df,df_for_add):            
+        dff = pd.merge(df_for_add,df,on='date',how = 'left')
+        dff = dff.fillna(0)
+        return dff
+    df = get_x_d(df,df_for_add)
+    amount = list(df['order_amount'])
+    num = list(df['num'])
+    attr = list(df['date'])
     
-    df = dfAll[dfAll['city'] == minit['st']]
-    list_id = list(df['id'])
-    return list_id
+    title_ = '个人的消息信息 '+info_id
+    bar = Bar('',width=1200,
+            height=600,)
+    bar.add('消费额（支出）', attr, amount, is_stack=True,datazoom_type="inside",is_label_show=True, is_datazoom_show=True)
+    bar.add('消费量（订单数）', attr, num, is_stack=True,datazoom_type="inside",is_label_show=True, is_datazoom_show=True)
+    title__ =  'img-'+ title_+'-bar.html'
+    bar.render(title__)
+    
+    line = Line('',width=1200,height=600)
+    line.add('消费额（支出）', attr, amount, is_stack=True,datazoom_type="inside",is_label_show=True, is_datazoom_show=True)
+    line.add('消费量（订单数）', attr, num, is_stack=True,datazoom_type="inside",is_label_show=True, is_datazoom_show=True)
+    title__ =  'img-'+ title_+'-line.html'
+    line.render(title__)
+    
+    print('sum: {}'.format(sum(num)))
+    
+#    df = dfAll[dfAll['city'] == minit['st']]
+#    list_id = list(df['id'])
+#    return list_id
 
 #    mm = mSQLFunction.mSQL()    
 #    multi = []

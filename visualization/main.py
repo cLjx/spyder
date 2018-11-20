@@ -12,9 +12,9 @@ m_st=10314
 #查看方式,月：'M'，周：'w'，季度：'Q',每一天：'D'
 m_axis='D'
 #时间段，起始,格式：'2014-06-20 00-00-00'
-m_time_s='2014-08-13 00-00-00'
+m_time_s='2014-01-1 00-00-00'
 #时间段，截至，格式：'2014-09-18 00-00-00'
-m_time_e='2016-09-18 00-00-00'
+m_time_e='2019-09-18 00-00-00'
 #商品类型:
 #['oil0', 'oil93', 'oil97', 'oil98', 
 # '京五0#普通柴油', '京五0#车用柴油', '京五92#汽油', '京五95#汽油', 
@@ -34,13 +34,13 @@ m = mSQLFunction.mSQL()
 
 #dfT = m.mTi(minit)
 
-mPlot.mAll(m.mAll(minit),minit)
+#mPlot.mAll(m.mAll(minit),minit)
 
 #mPlot.mGeoAll(m.mGeoAll(minit),minit)
 
-sts = [145728,10387,89932]
-
-
+#sts = [145728,10387,89932]
+#
+#
 minit['st'] = '深圳市'
 sts = mPlot.mCityAll(m.mCityAll(minit),minit)
 
@@ -48,9 +48,13 @@ multi = []
 for i in sts:
     minit['st'] = i
     temp = mPlot.mAll(m.mAll(minit),minit)
+    if isinstance(temp,bool):
+        continue
     multi.append({'st':i, 'df':temp})
 mPlot.mDrawMulti(multi,minit)
 
+
+#m.mUserTest(minit)
 
 m.close()
 

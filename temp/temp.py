@@ -83,23 +83,19 @@ print(time.mktime(time.strptime('2017-11-5 6-00-00','%Y-%m-%d %H-%M-%S')))
 
 
 
-print(time.strftime('%Y/%m/%d',time.localtime(1434763132)))
+print(time.strftime('%Y/%m/%d',time.localtime(1525343799)))
 
 import numpy as np
-n =  np.array([[1,2,3],[4,5,6]])
+n =  np.array([[1,2,3],[4,5,6],[7,8,9]])
 print(n)
 
-print(max(n[:,2]))
+n=pd.DataFrame(n)
+n.columns=['a','b','c']
+print(n['b'][0])
 
 
-m = [1,2,3]
-a = 1
-print(a in m)
+print(time.mktime(time.strptime('2015-9-22 00-00-00','%Y-%m-%d %H-%M-%S')))
+
+print(time.mktime(time.strptime('2015-9-23 0-00-00','%Y-%m-%d %H-%M-%S')))
 
 
-
-sts = [145728,10387,89932]
-multi = []
-for i in sts:
-    multi.append({'st':i, 'attr':'attr', 'value':'value'})
-print(multi)

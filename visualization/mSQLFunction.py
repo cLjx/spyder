@@ -9,7 +9,7 @@ Created on Fri Nov  9 21:17:37 2018
 import pymysql
 import numpy as np, pandas as pd
 import os, time, sys
-
+from pyecharts import Bar
 import initialization, mPlot
 
 class mSQL:
@@ -223,7 +223,7 @@ class mSQL:
                     minfo.user_id , minfo.platform , minfo.create_time , \
                     mit.goods_name, mit.goods_number,mit.market_price,mit.actual_price , mit.subtotal \
                     FROM ods_wei_stations as mst, ods_wei_order_info  as minfo ,ods_wei_order_items as mit  \
-                    WHERE '+ sql_st +' AND minfo.merchant_id = mst.stid AND mit.id = minfo.id \
+                    WHERE '+ sql_st +' AND minfo.merchant_id = mst.stid AND mit.order_id = minfo.id \
                     AND minfo.create_time >= '+time_s+' AND minfo.create_time <= '+time_e+'  \
                     AND mit.goods_type = 10 AND minfo.user_id > 0 AND minfo.platform > 0 ;'
 #            print(msql)
@@ -231,6 +231,8 @@ class mSQL:
             res = mSQL.cursor.fetchall()
             print('共检索到 {} 条数据'.format(len(res)))
     #        print(res[1:5])
+            if len(res) <= 0 :
+                return False
             alldf = pd.DataFrame(np.array(res),columns = ['stid','stname','province',
                               'city','district','address','longitude','latitude',
                               'user_id','platform','create_time','goods_name',
@@ -334,8 +336,74 @@ class mSQL:
         return mCityAllReturn
         
         
+    def mUserTest(self,minit):
         
-
+        msql = 'SELECT user_id , COUNT(user_id)  FROM ods_wei_order_info as minfo WHERE user_id > 0 GROUP  BY user_id';
+        mSQL.cursor.execute(msql)
+        res = mSQL.cursor.fetchall()
+        print('共检索到 {} 条数据（个人）'.format(len(res)))
+        alldf = pd.DataFrame(np.array(res),columns = ['user_id','count'])
+        print(alldf.head())
+        df = alldf[alldf['count']>100]
+        df = df.sort_values(by = ['count'],ascending = False);
+        def for_add(x):
+            open('csv_temp/no-use.csv','w').close()
+            x.to_csv('csv_temp/no-use.csv' ,index = False, header = True)
+            x = pd.read_csv('csv_temp/no-use.csv')
+            os.remove('csv_temp/no-use.csv')
+            return x
+        alldf = for_add(df)
+        print('------到 {} 条数据（个人）'.format(len(alldf)))
+        attr = list(alldf.index)
+        value = list(alldf['count'])
+        bar = Bar('')
+        bar.add('订单数',attr,value)
+#        bar.render('img-个人的消费情况.html')
+        per = ()
+        for index, row in alldf.iterrows():
+            msql = 'SELECT minfo.merchant_id , COUNT(minfo.merchant_id) as count \
+            FROM ods_wei_order_info as minfo WHERE minfo.user_id = '+str(row['user_id'])+' GROUP BY minfo.merchant_id'
+            mSQL.cursor.execute(msql)
+            res = mSQL.cursor.fetchall()
+            df = pd.DataFrame(np.array(res),columns = ['stid','count'])
+            df = df.sort_values(by = ['count'],ascending = False)
+            percent = df.loc[0]['count']/row['count']
+#            print('用户id {} : {} {}'.format(row['user_id'],,df.loc[0]['stid'],percent))
+            per = per + ([row['user_id'],df.loc[0]['count'],row['count'],percent],)
+        perdf = pd.DataFrame(np.array(per),columns=['user_id','single_station_item','all_item','per'])
+        bar.add('百分比',attr,list(perdf['per']))
+        bar.render('img-个人的消费情况.html')
+        
+        per_100 = len(perdf[perdf['per'] >= 1 ])/len(perdf)
+        per_75 = len(perdf[perdf['per'] >= 0.75 ])/len(perdf)
+        print('1： {}\n.75: {}'.format(per_100,per_75))
+        perdf_100 = perdf[perdf['per'] >= 1]
+        perdf_100 = for_add(perdf_100)
+        perdf_100_list = list(perdf_100['user_id'])
+        ii = -1
+        for i in perdf_100_list[0:1]:
+            ii += 1
+            msql = 'SELECT create_time , merchant_id , order_amount FROM ods_wei_order_info WHERE user_id = '+str(int(i))+';'
+            mSQL.cursor.execute(msql)
+            res = mSQL.cursor.fetchall()
+            df = pd.DataFrame(np.array(res),columns = ['create_time','merchant_id','order_amount'])
+            temp_merchant_id = df['merchant_id'][0]
+            df['date'] = None ;df['num'] = None
+            df['date'] = df.apply(lambda row:time.strftime(r'%Y/%m/%d', \
+                 time.localtime(row['create_time'])),axis = 1)
+            df['num'] = df.apply(lambda row:1 ,axis = 1)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.set_index('date')
+            info_id = 'user_id-'+str(int(i))+' merchant_id-'+str(temp_merchant_id)
+            mPlot.mSingle(df,minit,info_id)
+            print('在整个油站（有且仅有）共有订单： {} （应该和前面sum相等）'.format(perdf_100['single_station_item'][ii]))
+        print('')
+        return perdf_100_list
+            
+            
+        
+            
+        
 
 if __name__ == '__main__':
     m = mSQL();
